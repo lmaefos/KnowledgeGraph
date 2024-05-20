@@ -1,0 +1,855 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 1000px;
+                 height: 600px;
+                 background-color: black;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 1000px;
+                 height: 600px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="1R01AT010797-01">1R01AT010797-01</option>
+                                
+                                    <option value="New">New</option>
+                                
+                                    <option value="Enhancing the impact of behavioral pain management on MAT outcomes">Enhancing the impact of behavioral pain management on MAT outcomes</option>
+                                
+                                    <option value="Translation of Research to Practice for the Treatment of Opioid Addiction">Translation of Research to Practice for the Treatment of Opioid Addiction</option>
+                                
+                                    <option value="NCCIH">NCCIH</option>
+                                
+                                    <option value="University of Michigan, Ann Arbor">University of Michigan, Ann Arbor</option>
+                                
+                                    <option value="ILGEN, MARK">ILGEN, MARK</option>
+                                
+                                    <option value="Ann Arbor, MI">Ann Arbor, MI</option>
+                                
+                                    <option value="2019">2019</option>
+                                
+                                    <option value="4R33AT010106-02">4R33AT010106-02</option>
+                                
+                                    <option value="Extension">Extension</option>
+                                
+                                    <option value="Psychosocial pain management to improve opioid use disorder treatment outcomes">Psychosocial pain management to improve opioid use disorder treatment outcomes</option>
+                                
+                                    <option value="1R21AT010106-01">1R21AT010106-01</option>
+                                
+                                    <option value="New Strategies to Prevent and Treat Opioid Addiction">New Strategies to Prevent and Treat Opioid Addiction</option>
+                                
+                                    <option value="2018">2018</option>
+                                
+                                    <option value="LIN, LEWEI ALLISON">LIN, LEWEI ALLISON</option>
+                                
+                                    <option value="1R61AT010614-01">1R61AT010614-01</option>
+                                
+                                    <option value="The Youth Opioid Recovery Support (YORS) Intervention: An assertive community treatment model for improving medication adherence in young adults with opioid use disorder">The Youth Opioid Recovery Support (YORS) Intervention: An assertive community treatment model for improving medication adherence in young adults with opioid use disorder</option>
+                                
+                                    <option value="Maryland Treatment Centers">Maryland Treatment Centers</option>
+                                
+                                    <option value="FISHMAN, MARC">FISHMAN, MARC</option>
+                                
+                                    <option value="Baltimore, MD">Baltimore, MD</option>
+                                
+                                    <option value="1R21AT010125-01">1R21AT010125-01</option>
+                                
+                                    <option value="Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment">Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment</option>
+                                
+                                    <option value="Cambridge Health Alliance">Cambridge Health Alliance</option>
+                                
+                                    <option value="SCHUMAN OLIVIER, Z">SCHUMAN OLIVIER, Z</option>
+                                
+                                    <option value="Cambridge, MA">Cambridge, MA</option>
+                                
+                                    <option value="4R33AT010125-02">4R33AT010125-02</option>
+                                
+                                    <option value="3R61AT010806-01S1">3R61AT010806-01S1</option>
+                                
+                                    <option value="Revision">Revision</option>
+                                
+                                    <option value="Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction">Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction</option>
+                                
+                                    <option value="Case Western Reserve University">Case Western Reserve University</option>
+                                
+                                    <option value="NOCK, NORA L">NOCK, NORA L</option>
+                                
+                                    <option value="Cleveland, OH">Cleveland, OH</option>
+                                
+                                    <option value="2020">2020</option>
+                                
+                                    <option value="1R61AT010806-01">1R61AT010806-01</option>
+                                
+                                    <option value="Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction and Pain for Improving Adherence to Medication Assisted Treatment in Opioid Use Disorders">Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction and Pain for Improving Adherence to Medication Assisted Treatment in Opioid Use Disorders</option>
+                                
+                                    <option value="1R61AT010799-01">1R61AT010799-01</option>
+                                
+                                    <option value="Peer-Delivered Behavioral Activation Intervention to Improve Adherence to MAT Among Low-Income, Minority Individuals With OUD">Peer-Delivered Behavioral Activation Intervention to Improve Adherence to MAT Among Low-Income, Minority Individuals With OUD</option>
+                                
+                                    <option value="University of Maryland">University of Maryland</option>
+                                
+                                    <option value="MAGIDSON, JESSICA F">MAGIDSON, JESSICA F</option>
+                                
+                                    <option value="College Park, MD">College Park, MD</option>
+                                
+                                    <option value="3R61AT010799-01S2">3R61AT010799-01S2</option>
+                                
+                                    <option value="Understanding How Peers Can Shift Stigma to Retain Low-Income, Minority Individuals in Opioid Treatment">Understanding How Peers Can Shift Stigma to Retain Low-Income, Minority Individuals in Opioid Treatment</option>
+                                
+                                    <option value="University of Maryland, College Park">University of Maryland, College Park</option>
+                                
+                                    <option value="University of Colorado, Denver">University of Colorado, Denver</option>
+                                
+                                    <option value="WACHHOLTZ, AMY B">WACHHOLTZ, AMY B</option>
+                                
+                                    <option value="Denver, CO">Denver, CO</option>
+                                
+                                    <option value="1R21AT010117-01">1R21AT010117-01</option>
+                                
+                                    <option value="Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder">Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder</option>
+                                
+                                    <option value="Dartmouth College">Dartmouth College</option>
+                                
+                                    <option value="GOODMAN, DAISY J">GOODMAN, DAISY J</option>
+                                
+                                    <option value="Hanover, NH">Hanover, NH</option>
+                                
+                                    <option value="4R33AT010117-02">4R33AT010117-02</option>
+                                
+                                    <option value="LORD, SARAH E">LORD, SARAH E</option>
+                                
+                                    <option value="4R33AT010118-02">4R33AT010118-02</option>
+                                
+                                    <option value="Comprehensive CBT via reSET for a Hub and Spoke MAT System of Care">Comprehensive CBT via reSET for a Hub and Spoke MAT System of Care</option>
+                                
+                                    <option value="Pennsylvania State University, Hershey Medical Center">Pennsylvania State University, Hershey Medical Center</option>
+                                
+                                    <option value="CAMPBELL, AIMEE N">CAMPBELL, AIMEE N</option>
+                                
+                                    <option value="Hershey, PA">Hershey, PA</option>
+                                
+                                    <option value="HOLDEN, DENISE">HOLDEN, DENISE</option>
+                                
+                                    <option value="KAWASAKI, SARAH S">KAWASAKI, SARAH S</option>
+                                
+                                    <option value="NUNES, EDWARD V">NUNES, EDWARD V</option>
+                                
+                                    <option value="3R33AT010606-03S1">3R33AT010606-03S1</option>
+                                
+                                    <option value="Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients">Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients</option>
+                                
+                                    <option value="University of California, Irvine">University of California, Irvine</option>
+                                
+                                    <option value="YOUNG, SEAN">YOUNG, SEAN</option>
+                                
+                                    <option value="Irvine, CA">Irvine, CA</option>
+                                
+                                    <option value="2021">2021</option>
+                                
+                                    <option value="1R61AT010604-01">1R61AT010604-01</option>
+                                
+                                    <option value="Testing the Effects of Contingency Management and Behavioral Economics on Buprenorphine-Naloxone Treatment Adherence Using a Sequential Multiple Assignment Randomized Trial (SMART) Design">Testing the Effects of Contingency Management and Behavioral Economics on Buprenorphine-Naloxone Treatment Adherence Using a Sequential Multiple Assignment Randomized Trial (SMART) Design</option>
+                                
+                                    <option value="University of Tennessee">University of Tennessee</option>
+                                
+                                    <option value="DEREFINKO, KAREN J">DEREFINKO, KAREN J</option>
+                                
+                                    <option value="Knoxville, TN">Knoxville, TN</option>
+                                
+                                    <option value="3R61AT010800-02S1">3R61AT010800-02S1</option>
+                                
+                                    <option value="OUD Stigma Mechanisms in the Context of Buprenorphine Treatment">OUD Stigma Mechanisms in the Context of Buprenorphine Treatment</option>
+                                
+                                    <option value="University of California, Los Angeles (UCLA)">University of California, Los Angeles (UCLA)</option>
+                                
+                                    <option value="GLASNER-EDWARDS, SUZETTE V">GLASNER-EDWARDS, SUZETTE V</option>
+                                
+                                    <option value="Los Angeles, CA">Los Angeles, CA</option>
+                                
+                                    <option value="1R61AT010606-01">1R61AT010606-01</option>
+                                
+                                    <option value="3R61AT010604-01S1">3R61AT010604-01S1</option>
+                                
+                                    <option value="Behavioral Economics based stigma reduction intervention for low income, African American individuals with OUD">Behavioral Economics based stigma reduction intervention for low income, African American individuals with OUD</option>
+                                
+                                    <option value="University of Tennessee, Health Science Center">University of Tennessee, Health Science Center</option>
+                                
+                                    <option value="Memphis, TN">Memphis, TN</option>
+                                
+                                    <option value="4R33AT010109-02">4R33AT010109-02</option>
+                                
+                                    <option value="Mindfulness Oriented Recovery Enhancement as an Adjunct to Methadone Treatment for Opioid Use and Chronic Pain Management">Mindfulness Oriented Recovery Enhancement as an Adjunct to Methadone Treatment for Opioid Use and Chronic Pain Management</option>
+                                
+                                    <option value="Rutgers Biomedical and Health Sciences - Robert Wood Johnson Medical School">Rutgers Biomedical and Health Sciences - Robert Wood Johnson Medical School</option>
+                                
+                                    <option value="COOPERMAN, NINA">COOPERMAN, NINA</option>
+                                
+                                    <option value="Piscataway, NJ">Piscataway, NJ</option>
+                                
+                                    <option value="1R01AT010742-01">1R01AT010742-01</option>
+                                
+                                    <option value="Mindful Body Awareness Training as an Adjunct to Medication Assisted Treatment for Opioid Use Disorder: An ancillary study">Mindful Body Awareness Training as an Adjunct to Medication Assisted Treatment for Opioid Use Disorder: An ancillary study</option>
+                                
+                                    <option value="University of Washington">University of Washington</option>
+                                
+                                    <option value="MERRILL, JOSEPH O">MERRILL, JOSEPH O</option>
+                                
+                                    <option value="Seattle, WA">Seattle, WA</option>
+                                
+                                    <option value="PRICE, CYNTHIA J">PRICE, CYNTHIA J</option>
+                                
+                                    <option value="1R61AT010802-01">1R61AT010802-01</option>
+                                
+                                    <option value="A Mindfulness and Peer Mentoring Program to Improve Adherence to Medication Assisted Treatment for Opioid Use Disorders">A Mindfulness and Peer Mentoring Program to Improve Adherence to Medication Assisted Treatment for Opioid Use Disorders</option>
+                                
+                                    <option value="University of Alabama">University of Alabama</option>
+                                
+                                    <option value="MUMBA, MERCY N">MUMBA, MERCY N</option>
+                                
+                                    <option value="Tuscaloosa, AL">Tuscaloosa, AL</option>
+                                
+                                    <option value="1R01DA051067-01">1R01DA051067-01</option>
+                                
+                                    <option value="Hub and Spoke Opioid Treatment Networks: 2nd Generation Approaches to Improve Medication Treatment for Opioid Use Disorders">Hub and Spoke Opioid Treatment Networks: 2nd Generation Approaches to Improve Medication Treatment for Opioid Use Disorders</option>
+                                
+                                    <option value="NIDA">NIDA</option>
+                                
+                                    <option value="Brandeis University">Brandeis University</option>
+                                
+                                    <option value="REIF, SHARON">REIF, SHARON</option>
+                                
+                                    <option value="Waltham, MA">Waltham, MA</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#e07c3e", "font": {"color": "white"}, "id": "1R01AT010797-01", "label": "1R01AT010797-01", "shape": "dot"}, {"color": "#ff7f0e", "font": {"color": "white"}, "id": "New", "label": "New", "shape": "dot", "size": 11.428571428571427}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Enhancing the impact of behavioral pain management on MAT outcomes", "label": "Enhancing the impact of behavioral pain management on MAT outcomes", "shape": "dot", "size": 1.4285714285714284}, {"color": "#2ca02c", "font": {"color": "white"}, "id": "Translation of Research to Practice for the Treatment of Opioid Addiction", "label": "Translation of Research to Practice for the Treatment of Opioid Addiction", "shape": "dot", "size": 18.571428571428573}, {"color": "#9467bd", "font": {"color": "white"}, "id": "NCCIH", "label": "NCCIH", "shape": "dot", "size": 20.0}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Michigan, Ann Arbor", "label": "University of Michigan, Ann Arbor", "shape": "dot", "size": 2.8571428571428568}, {"color": "#e377c2", "font": {"color": "white"}, "id": "ILGEN, MARK", "label": "ILGEN, MARK", "shape": "dot", "size": 2.142857142857143}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Ann Arbor, MI", "label": "Ann Arbor, MI", "shape": "dot", "size": 2.8571428571428568}, {"color": "#bcbd22", "font": {"color": "white"}, "id": "2019", "label": "2019", "shape": "dot", "size": 14.285714285714286}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "4R33AT010106-02", "label": "4R33AT010106-02", "shape": "dot"}, {"color": "#ff7f0e", "font": {"color": "white"}, "id": "Extension", "label": "Extension", "shape": "dot", "size": 5.7142857142857135}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Psychosocial pain management to improve opioid use disorder treatment outcomes", "label": "Psychosocial pain management to improve opioid use disorder treatment outcomes", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R21AT010106-01", "label": "1R21AT010106-01", "shape": "dot"}, {"color": "#2ca02c", "font": {"color": "white"}, "id": "New Strategies to Prevent and Treat Opioid Addiction", "label": "New Strategies to Prevent and Treat Opioid Addiction", "shape": "dot", "size": 2.142857142857143}, {"color": "#bcbd22", "font": {"color": "white"}, "id": "2018", "label": "2018", "shape": "dot", "size": 2.8571428571428568}, {"color": "#e377c2", "font": {"color": "white"}, "id": "LIN, LEWEI ALLISON", "label": "LIN, LEWEI ALLISON", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010614-01", "label": "1R61AT010614-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "The Youth Opioid Recovery Support (YORS) Intervention: An assertive community treatment model for improving medication adherence in young adults with opioid use disorder", "label": "The Youth Opioid Recovery Support (YORS) Intervention: An assertive community treatment model for improving medication adherence in young adults with opioid use disorder", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Maryland Treatment Centers", "label": "Maryland Treatment Centers", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "FISHMAN, MARC", "label": "FISHMAN, MARC", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Baltimore, MD", "label": "Baltimore, MD", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R21AT010125-01", "label": "1R21AT010125-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment", "label": "Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment", "shape": "dot", "size": 1.4285714285714284}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Cambridge Health Alliance", "label": "Cambridge Health Alliance", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e377c2", "font": {"color": "white"}, "id": "SCHUMAN OLIVIER, Z", "label": "SCHUMAN OLIVIER, Z", "shape": "dot", "size": 1.4285714285714284}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Cambridge, MA", "label": "Cambridge, MA", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "4R33AT010125-02", "label": "4R33AT010125-02", "shape": "dot"}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "3R61AT010806-01S1", "label": "3R61AT010806-01S1", "shape": "dot"}, {"color": "#ff7f0e", "font": {"color": "white"}, "id": "Revision", "label": "Revision", "shape": "dot", "size": 3.5714285714285716}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction", "label": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Case Western Reserve University", "label": "Case Western Reserve University", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e377c2", "font": {"color": "white"}, "id": "NOCK, NORA L", "label": "NOCK, NORA L", "shape": "dot", "size": 1.4285714285714284}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Cleveland, OH", "label": "Cleveland, OH", "shape": "dot", "size": 1.4285714285714284}, {"color": "#bcbd22", "font": {"color": "white"}, "id": "2020", "label": "2020", "shape": "dot", "size": 2.8571428571428568}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010806-01", "label": "1R61AT010806-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction and Pain for Improving Adherence to Medication Assisted Treatment in Opioid Use Disorders", "label": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction and Pain for Improving Adherence to Medication Assisted Treatment in Opioid Use Disorders", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010799-01", "label": "1R61AT010799-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Peer-Delivered Behavioral Activation Intervention to Improve Adherence to MAT Among Low-Income, Minority Individuals With OUD", "label": "Peer-Delivered Behavioral Activation Intervention to Improve Adherence to MAT Among Low-Income, Minority Individuals With OUD", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Maryland", "label": "University of Maryland", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "MAGIDSON, JESSICA F", "label": "MAGIDSON, JESSICA F", "shape": "dot", "size": 1.4285714285714284}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "College Park, MD", "label": "College Park, MD", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "3R61AT010799-01S2", "label": "3R61AT010799-01S2", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Understanding How Peers Can Shift Stigma to Retain Low-Income, Minority Individuals in Opioid Treatment", "label": "Understanding How Peers Can Shift Stigma to Retain Low-Income, Minority Individuals in Opioid Treatment", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Maryland, College Park", "label": "University of Maryland, College Park", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Colorado, Denver", "label": "University of Colorado, Denver", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "WACHHOLTZ, AMY B", "label": "WACHHOLTZ, AMY B", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Denver, CO", "label": "Denver, CO", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R21AT010117-01", "label": "1R21AT010117-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder", "label": "Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder", "shape": "dot", "size": 2.142857142857143}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Dartmouth College", "label": "Dartmouth College", "shape": "dot", "size": 2.142857142857143}, {"color": "#e377c2", "font": {"color": "white"}, "id": "GOODMAN, DAISY J", "label": "GOODMAN, DAISY J", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Hanover, NH", "label": "Hanover, NH", "shape": "dot", "size": 2.142857142857143}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "4R33AT010117-02", "label": "4R33AT010117-02", "shape": "dot"}, {"color": "#e377c2", "font": {"color": "white"}, "id": "LORD, SARAH E", "label": "LORD, SARAH E", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "4R33AT010118-02", "label": "4R33AT010118-02", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Comprehensive CBT via reSET for a Hub and Spoke MAT System of Care", "label": "Comprehensive CBT via reSET for a Hub and Spoke MAT System of Care", "shape": "dot", "size": 2.8571428571428568}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Pennsylvania State University, Hershey Medical Center", "label": "Pennsylvania State University, Hershey Medical Center", "shape": "dot", "size": 2.8571428571428568}, {"color": "#e377c2", "font": {"color": "white"}, "id": "CAMPBELL, AIMEE N", "label": "CAMPBELL, AIMEE N", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Hershey, PA", "label": "Hershey, PA", "shape": "dot", "size": 2.8571428571428568}, {"color": "#e377c2", "font": {"color": "white"}, "id": "HOLDEN, DENISE", "label": "HOLDEN, DENISE", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "KAWASAKI, SARAH S", "label": "KAWASAKI, SARAH S", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "NUNES, EDWARD V", "label": "NUNES, EDWARD V", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "3R33AT010606-03S1", "label": "3R33AT010606-03S1", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients", "label": "Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients", "shape": "dot", "size": 1.4285714285714284}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of California, Irvine", "label": "University of California, Irvine", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "YOUNG, SEAN", "label": "YOUNG, SEAN", "shape": "dot", "size": 1.4285714285714284}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Irvine, CA", "label": "Irvine, CA", "shape": "dot", "size": 0.7142857142857142}, {"color": "#bcbd22", "font": {"color": "white"}, "id": "2021", "label": "2021", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010604-01", "label": "1R61AT010604-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Testing the Effects of Contingency Management and Behavioral Economics on Buprenorphine-Naloxone Treatment Adherence Using a Sequential Multiple Assignment Randomized Trial (SMART) Design", "label": "Testing the Effects of Contingency Management and Behavioral Economics on Buprenorphine-Naloxone Treatment Adherence Using a Sequential Multiple Assignment Randomized Trial (SMART) Design", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Tennessee", "label": "University of Tennessee", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "DEREFINKO, KAREN J", "label": "DEREFINKO, KAREN J", "shape": "dot", "size": 1.4285714285714284}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Knoxville, TN", "label": "Knoxville, TN", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "3R61AT010800-02S1", "label": "3R61AT010800-02S1", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "OUD Stigma Mechanisms in the Context of Buprenorphine Treatment", "label": "OUD Stigma Mechanisms in the Context of Buprenorphine Treatment", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of California, Los Angeles (UCLA)", "label": "University of California, Los Angeles (UCLA)", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e377c2", "font": {"color": "white"}, "id": "GLASNER-EDWARDS, SUZETTE V", "label": "GLASNER-EDWARDS, SUZETTE V", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Los Angeles, CA", "label": "Los Angeles, CA", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010606-01", "label": "1R61AT010606-01", "shape": "dot"}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "3R61AT010604-01S1", "label": "3R61AT010604-01S1", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Behavioral Economics based stigma reduction intervention for low income, African American individuals with OUD", "label": "Behavioral Economics based stigma reduction intervention for low income, African American individuals with OUD", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Tennessee, Health Science Center", "label": "University of Tennessee, Health Science Center", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Memphis, TN", "label": "Memphis, TN", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "4R33AT010109-02", "label": "4R33AT010109-02", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Mindfulness Oriented Recovery Enhancement as an Adjunct to Methadone Treatment for Opioid Use and Chronic Pain Management", "label": "Mindfulness Oriented Recovery Enhancement as an Adjunct to Methadone Treatment for Opioid Use and Chronic Pain Management", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Rutgers Biomedical and Health Sciences - Robert Wood Johnson Medical School", "label": "Rutgers Biomedical and Health Sciences - Robert Wood Johnson Medical School", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "COOPERMAN, NINA", "label": "COOPERMAN, NINA", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Piscataway, NJ", "label": "Piscataway, NJ", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R01AT010742-01", "label": "1R01AT010742-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Mindful Body Awareness Training as an Adjunct to Medication Assisted Treatment for Opioid Use Disorder: An ancillary study", "label": "Mindful Body Awareness Training as an Adjunct to Medication Assisted Treatment for Opioid Use Disorder: An ancillary study", "shape": "dot", "size": 1.4285714285714284}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Washington", "label": "University of Washington", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e377c2", "font": {"color": "white"}, "id": "MERRILL, JOSEPH O", "label": "MERRILL, JOSEPH O", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Seattle, WA", "label": "Seattle, WA", "shape": "dot", "size": 1.4285714285714284}, {"color": "#e377c2", "font": {"color": "white"}, "id": "PRICE, CYNTHIA J", "label": "PRICE, CYNTHIA J", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R61AT010802-01", "label": "1R61AT010802-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "A Mindfulness and Peer Mentoring Program to Improve Adherence to Medication Assisted Treatment for Opioid Use Disorders", "label": "A Mindfulness and Peer Mentoring Program to Improve Adherence to Medication Assisted Treatment for Opioid Use Disorders", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "University of Alabama", "label": "University of Alabama", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "MUMBA, MERCY N", "label": "MUMBA, MERCY N", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Tuscaloosa, AL", "label": "Tuscaloosa, AL", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e07c3e", "font": {"color": "white"}, "id": "1R01DA051067-01", "label": "1R01DA051067-01", "shape": "dot"}, {"color": "#1f77b4", "font": {"color": "white"}, "id": "Hub and Spoke Opioid Treatment Networks: 2nd Generation Approaches to Improve Medication Treatment for Opioid Use Disorders", "label": "Hub and Spoke Opioid Treatment Networks: 2nd Generation Approaches to Improve Medication Treatment for Opioid Use Disorders", "shape": "dot", "size": 0.7142857142857142}, {"color": "#9467bd", "font": {"color": "white"}, "id": "NIDA", "label": "NIDA", "shape": "dot", "size": 0.7142857142857142}, {"color": "#8c564b", "font": {"color": "white"}, "id": "Brandeis University", "label": "Brandeis University", "shape": "dot", "size": 0.7142857142857142}, {"color": "#e377c2", "font": {"color": "white"}, "id": "REIF, SHARON", "label": "REIF, SHARON", "shape": "dot", "size": 0.7142857142857142}, {"color": "#7f7f7f", "font": {"color": "white"}, "id": "Waltham, MA", "label": "Waltham, MA", "shape": "dot", "size": 0.7142857142857142}]);
+                  edges = new vis.DataSet([{"from": "1R01AT010797-01", "to": "New"}, {"from": "1R01AT010797-01", "to": "Enhancing the impact of behavioral pain management on MAT outcomes"}, {"from": "1R01AT010797-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R01AT010797-01", "to": "NCCIH"}, {"from": "1R01AT010797-01", "to": "University of Michigan, Ann Arbor"}, {"from": "1R01AT010797-01", "to": "ILGEN, MARK"}, {"from": "1R01AT010797-01", "to": "Ann Arbor, MI"}, {"from": "1R01AT010797-01", "to": "2019"}, {"from": "4R33AT010106-02", "to": "Extension"}, {"from": "4R33AT010106-02", "to": "Psychosocial pain management to improve opioid use disorder treatment outcomes"}, {"from": "4R33AT010106-02", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "4R33AT010106-02", "to": "NCCIH"}, {"from": "4R33AT010106-02", "to": "University of Michigan, Ann Arbor"}, {"from": "4R33AT010106-02", "to": "ILGEN, MARK"}, {"from": "4R33AT010106-02", "to": "Ann Arbor, MI"}, {"from": "4R33AT010106-02", "to": "2019"}, {"from": "1R21AT010106-01", "to": "New"}, {"from": "1R21AT010106-01", "to": "Psychosocial pain management to improve opioid use disorder treatment outcomes"}, {"from": "1R21AT010106-01", "to": "New Strategies to Prevent and Treat Opioid Addiction"}, {"from": "1R21AT010106-01", "to": "NCCIH"}, {"from": "1R21AT010106-01", "to": "University of Michigan, Ann Arbor"}, {"from": "1R21AT010106-01", "to": "ILGEN, MARK"}, {"from": "1R21AT010106-01", "to": "Ann Arbor, MI"}, {"from": "1R21AT010106-01", "to": "2018"}, {"from": "1R01AT010797-01", "to": "LIN, LEWEI ALLISON"}, {"from": "1R61AT010614-01", "to": "New"}, {"from": "1R61AT010614-01", "to": "The Youth Opioid Recovery Support (YORS) Intervention: An assertive community treatment model for improving medication adherence in young adults with opioid use disorder"}, {"from": "1R61AT010614-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010614-01", "to": "NCCIH"}, {"from": "1R61AT010614-01", "to": "Maryland Treatment Centers"}, {"from": "1R61AT010614-01", "to": "FISHMAN, MARC"}, {"from": "1R61AT010614-01", "to": "Baltimore, MD"}, {"from": "1R61AT010614-01", "to": "2019"}, {"from": "1R21AT010125-01", "to": "New"}, {"from": "1R21AT010125-01", "to": "Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment"}, {"from": "1R21AT010125-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R21AT010125-01", "to": "NCCIH"}, {"from": "1R21AT010125-01", "to": "Cambridge Health Alliance"}, {"from": "1R21AT010125-01", "to": "SCHUMAN OLIVIER, Z"}, {"from": "1R21AT010125-01", "to": "Cambridge, MA"}, {"from": "1R21AT010125-01", "to": "2018"}, {"from": "4R33AT010125-02", "to": "Extension"}, {"from": "4R33AT010125-02", "to": "Effect of Mindfulness Training on Opioid Use and Anxiety During Primary Care Buprenorphine Treatment"}, {"from": "4R33AT010125-02", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "4R33AT010125-02", "to": "NCCIH"}, {"from": "4R33AT010125-02", "to": "Cambridge Health Alliance"}, {"from": "4R33AT010125-02", "to": "SCHUMAN OLIVIER, Z"}, {"from": "4R33AT010125-02", "to": "Cambridge, MA"}, {"from": "4R33AT010125-02", "to": "2019"}, {"from": "3R61AT010806-01S1", "to": "Revision"}, {"from": "3R61AT010806-01S1", "to": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction"}, {"from": "3R61AT010806-01S1", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "3R61AT010806-01S1", "to": "NCCIH"}, {"from": "3R61AT010806-01S1", "to": "Case Western Reserve University"}, {"from": "3R61AT010806-01S1", "to": "NOCK, NORA L"}, {"from": "3R61AT010806-01S1", "to": "Cleveland, OH"}, {"from": "3R61AT010806-01S1", "to": "2020"}, {"from": "1R61AT010806-01", "to": "New"}, {"from": "1R61AT010806-01", "to": "Enhancing Exercise and Psychotherapy to Treat Comorbid Addiction and Pain for Improving Adherence to Medication Assisted Treatment in Opioid Use Disorders"}, {"from": "1R61AT010806-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010806-01", "to": "NCCIH"}, {"from": "1R61AT010806-01", "to": "Case Western Reserve University"}, {"from": "1R61AT010806-01", "to": "NOCK, NORA L"}, {"from": "1R61AT010806-01", "to": "Cleveland, OH"}, {"from": "1R61AT010806-01", "to": "2019"}, {"from": "1R61AT010799-01", "to": "New"}, {"from": "1R61AT010799-01", "to": "Peer-Delivered Behavioral Activation Intervention to Improve Adherence to MAT Among Low-Income, Minority Individuals With OUD"}, {"from": "1R61AT010799-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010799-01", "to": "NCCIH"}, {"from": "1R61AT010799-01", "to": "University of Maryland"}, {"from": "1R61AT010799-01", "to": "MAGIDSON, JESSICA F"}, {"from": "1R61AT010799-01", "to": "College Park, MD"}, {"from": "1R61AT010799-01", "to": "2019"}, {"from": "3R61AT010799-01S2", "to": "Revision"}, {"from": "3R61AT010799-01S2", "to": "Understanding How Peers Can Shift Stigma to Retain Low-Income, Minority Individuals in Opioid Treatment"}, {"from": "3R61AT010799-01S2", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "3R61AT010799-01S2", "to": "NCCIH"}, {"from": "3R61AT010799-01S2", "to": "University of Maryland, College Park"}, {"from": "3R61AT010799-01S2", "to": "MAGIDSON, JESSICA F"}, {"from": "3R61AT010799-01S2", "to": "College Park, MD"}, {"from": "3R61AT010799-01S2", "to": "2020"}, {"from": "1R61AT010806-01", "to": "University of Colorado, Denver"}, {"from": "1R61AT010806-01", "to": "WACHHOLTZ, AMY B"}, {"from": "1R61AT010806-01", "to": "Denver, CO"}, {"from": "1R21AT010117-01", "to": "New"}, {"from": "1R21AT010117-01", "to": "Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder"}, {"from": "1R21AT010117-01", "to": "New Strategies to Prevent and Treat Opioid Addiction"}, {"from": "1R21AT010117-01", "to": "NCCIH"}, {"from": "1R21AT010117-01", "to": "Dartmouth College"}, {"from": "1R21AT010117-01", "to": "GOODMAN, DAISY J"}, {"from": "1R21AT010117-01", "to": "Hanover, NH"}, {"from": "1R21AT010117-01", "to": "2018"}, {"from": "4R33AT010117-02", "to": "Extension"}, {"from": "4R33AT010117-02", "to": "Mindful Moms in Recovery: Yoga-based mindfulness relapse prevention for pregnant women with opioid disorder"}, {"from": "4R33AT010117-02", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "4R33AT010117-02", "to": "NCCIH"}, {"from": "4R33AT010117-02", "to": "Dartmouth College"}, {"from": "4R33AT010117-02", "to": "LORD, SARAH E"}, {"from": "4R33AT010117-02", "to": "Hanover, NH"}, {"from": "4R33AT010117-02", "to": "2019"}, {"from": "1R21AT010117-01", "to": "LORD, SARAH E"}, {"from": "4R33AT010118-02", "to": "Extension"}, {"from": "4R33AT010118-02", "to": "Comprehensive CBT via reSET for a Hub and Spoke MAT System of Care"}, {"from": "4R33AT010118-02", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "4R33AT010118-02", "to": "NCCIH"}, {"from": "4R33AT010118-02", "to": "Pennsylvania State University, Hershey Medical Center"}, {"from": "4R33AT010118-02", "to": "CAMPBELL, AIMEE N"}, {"from": "4R33AT010118-02", "to": "Hershey, PA"}, {"from": "4R33AT010118-02", "to": "2019"}, {"from": "4R33AT010118-02", "to": "HOLDEN, DENISE"}, {"from": "4R33AT010118-02", "to": "KAWASAKI, SARAH S"}, {"from": "4R33AT010118-02", "to": "NUNES, EDWARD V"}, {"from": "3R33AT010606-03S1", "to": "Revision"}, {"from": "3R33AT010606-03S1", "to": "Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients"}, {"from": "3R33AT010606-03S1", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "3R33AT010606-03S1", "to": "NCCIH"}, {"from": "3R33AT010606-03S1", "to": "University of California, Irvine"}, {"from": "3R33AT010606-03S1", "to": "YOUNG, SEAN"}, {"from": "3R33AT010606-03S1", "to": "Irvine, CA"}, {"from": "3R33AT010606-03S1", "to": "2021"}, {"from": "1R61AT010604-01", "to": "New"}, {"from": "1R61AT010604-01", "to": "Testing the Effects of Contingency Management and Behavioral Economics on Buprenorphine-Naloxone Treatment Adherence Using a Sequential Multiple Assignment Randomized Trial (SMART) Design"}, {"from": "1R61AT010604-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010604-01", "to": "NCCIH"}, {"from": "1R61AT010604-01", "to": "University of Tennessee"}, {"from": "1R61AT010604-01", "to": "DEREFINKO, KAREN J"}, {"from": "1R61AT010604-01", "to": "Knoxville, TN"}, {"from": "1R61AT010604-01", "to": "2019"}, {"from": "3R61AT010800-02S1", "to": "Revision"}, {"from": "3R61AT010800-02S1", "to": "OUD Stigma Mechanisms in the Context of Buprenorphine Treatment"}, {"from": "3R61AT010800-02S1", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "3R61AT010800-02S1", "to": "NCCIH"}, {"from": "3R61AT010800-02S1", "to": "University of California, Los Angeles (UCLA)"}, {"from": "3R61AT010800-02S1", "to": "GLASNER-EDWARDS, SUZETTE V"}, {"from": "3R61AT010800-02S1", "to": "Los Angeles, CA"}, {"from": "3R61AT010800-02S1", "to": "2020"}, {"from": "1R61AT010606-01", "to": "New"}, {"from": "1R61AT010606-01", "to": "Adapting the HOPE Online Support Intervention to Increase MAT Uptake Among OUD Patients"}, {"from": "1R61AT010606-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010606-01", "to": "NCCIH"}, {"from": "1R61AT010606-01", "to": "University of California, Los Angeles (UCLA)"}, {"from": "1R61AT010606-01", "to": "YOUNG, SEAN"}, {"from": "1R61AT010606-01", "to": "Los Angeles, CA"}, {"from": "1R61AT010606-01", "to": "2019"}, {"from": "3R61AT010604-01S1", "to": "Revision"}, {"from": "3R61AT010604-01S1", "to": "Behavioral Economics based stigma reduction intervention for low income, African American individuals with OUD"}, {"from": "3R61AT010604-01S1", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "3R61AT010604-01S1", "to": "NCCIH"}, {"from": "3R61AT010604-01S1", "to": "University of Tennessee, Health Science Center"}, {"from": "3R61AT010604-01S1", "to": "DEREFINKO, KAREN J"}, {"from": "3R61AT010604-01S1", "to": "Memphis, TN"}, {"from": "3R61AT010604-01S1", "to": "2020"}, {"from": "4R33AT010109-02", "to": "Extension"}, {"from": "4R33AT010109-02", "to": "Mindfulness Oriented Recovery Enhancement as an Adjunct to Methadone Treatment for Opioid Use and Chronic Pain Management"}, {"from": "4R33AT010109-02", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "4R33AT010109-02", "to": "NCCIH"}, {"from": "4R33AT010109-02", "to": "Rutgers Biomedical and Health Sciences - Robert Wood Johnson Medical School"}, {"from": "4R33AT010109-02", "to": "COOPERMAN, NINA"}, {"from": "4R33AT010109-02", "to": "Piscataway, NJ"}, {"from": "4R33AT010109-02", "to": "2019"}, {"from": "1R01AT010742-01", "to": "New"}, {"from": "1R01AT010742-01", "to": "Mindful Body Awareness Training as an Adjunct to Medication Assisted Treatment for Opioid Use Disorder: An ancillary study"}, {"from": "1R01AT010742-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R01AT010742-01", "to": "NCCIH"}, {"from": "1R01AT010742-01", "to": "University of Washington"}, {"from": "1R01AT010742-01", "to": "MERRILL, JOSEPH O"}, {"from": "1R01AT010742-01", "to": "Seattle, WA"}, {"from": "1R01AT010742-01", "to": "2019"}, {"from": "1R01AT010742-01", "to": "PRICE, CYNTHIA J"}, {"from": "1R61AT010802-01", "to": "New"}, {"from": "1R61AT010802-01", "to": "A Mindfulness and Peer Mentoring Program to Improve Adherence to Medication Assisted Treatment for Opioid Use Disorders"}, {"from": "1R61AT010802-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R61AT010802-01", "to": "NCCIH"}, {"from": "1R61AT010802-01", "to": "University of Alabama"}, {"from": "1R61AT010802-01", "to": "MUMBA, MERCY N"}, {"from": "1R61AT010802-01", "to": "Tuscaloosa, AL"}, {"from": "1R61AT010802-01", "to": "2019"}, {"from": "1R01DA051067-01", "to": "New"}, {"from": "1R01DA051067-01", "to": "Hub and Spoke Opioid Treatment Networks: 2nd Generation Approaches to Improve Medication Treatment for Opioid Use Disorders"}, {"from": "1R01DA051067-01", "to": "Translation of Research to Practice for the Treatment of Opioid Addiction"}, {"from": "1R01DA051067-01", "to": "NIDA"}, {"from": "1R01DA051067-01", "to": "Brandeis University"}, {"from": "1R01DA051067-01", "to": "REIF, SHARON"}, {"from": "1R01DA051067-01", "to": "Waltham, MA"}, {"from": "1R01DA051067-01", "to": "2019"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
