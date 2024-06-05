@@ -48,7 +48,7 @@ For more information on using the filter feature, [explanation below](#selecting
 - `Project #`: <span style="color:#e07c3e;">&#x25CF;</span> Orange Circle
 - `Application Type`: <span style="color:#ff0000;">&#x25CF;</span> Red Circle
 - `Project Title`: <span style="color:#1f77b4;">&#x25B2;</span> Blue Triangle
-- `Research Focus Area`: <span style="color:#2ca02c;">&#x25CF;</span> Green Circle
+- `Research Focus Area`: <span style="color:#2ca02c;">&#x25A0;</span> Green Circle
 - `Administering IC(s)`: <span style="color:#9467bd;">&#x25CF;</span> Purple Circle
 - `Institution`: <span style="color:#8c564b;">&#x25CF;</span> Brown Circle
 - `Investigator`: <span style="color:#e377c2;">&#x25CF;</span> Pink Circle
